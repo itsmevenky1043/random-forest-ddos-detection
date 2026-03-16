@@ -76,6 +76,16 @@ export default function App() {
   const [isAttackActive, setIsAttackActive] = useState(false);
   const [isPreventionEnabled, setIsPreventionEnabled] = useState(true);
   const [blockedIps, setBlockedIps] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<{ id: string; ip: string }[]>([]);
+
+  const addNotification = (ip: string) => {
+    const id = Math.random().toString(36).substring(7);
+    setNotifications(prev => [...prev, { id, ip }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000);
+  };
+
   const [stats, setStats] = useState({
     totalRequests: 0,
     detectedAttacks: 0,
@@ -83,6 +93,7 @@ export default function App() {
     serverLoad: 15, // Percentage
   });
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analysis' | 'about'>('dashboard');
+  const [showAttackAlert, setShowAttackAlert] = useState(false);
 
   // --- Refs for Simulation ---
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -138,7 +149,11 @@ export default function App() {
 
         // Auto-Prevention Logic: Block IP if classified as Attack
         if (isPreventionEnabled && newPacket.classification === 'Attack' && !blockedIps.has(newPacket.ip)) {
-          setBlockedIps(prev => new Set(prev).add(newPacket.ip));
+          setBlockedIps(prev => {
+            if (prev.has(newPacket.ip)) return prev;
+            addNotification(newPacket.ip);
+            return new Set(prev).add(newPacket.ip);
+          });
         }
       }, INSPECTION_TIME);
 
@@ -197,7 +212,13 @@ export default function App() {
         
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setIsAttackActive(!isAttackActive)}
+            onClick={() => {
+              const nextState = !isAttackActive;
+              setIsAttackActive(nextState);
+              if (nextState) {
+                setShowAttackAlert(true);
+              }
+            }}
             className={cn(
               "px-4 py-2 rounded-full font-mono text-xs uppercase tracking-tighter transition-all flex items-center gap-2 border border-[#141414]",
               isAttackActive ? "bg-red-500 text-white border-red-600 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-white hover:bg-gray-100"
@@ -681,6 +702,80 @@ export default function App() {
           border-radius: 10px;
         }
       `}} />
+
+      {/* Critical Attack Alert Modal */}
+      <AnimatePresence>
+        {showAttackAlert && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white border-4 border-red-600 max-w-md w-full p-8 shadow-[12px_12px_0px_0px_rgba(220,38,38,0.3)] relative"
+            >
+              <div className="flex flex-col items-center text-center gap-6">
+                <div className="bg-red-100 p-4 rounded-full animate-pulse">
+                  <ShieldAlert size={48} className="text-red-600" />
+                </div>
+                
+                <div className="space-y-2">
+                  <h2 className="font-serif italic text-3xl font-bold text-red-600 uppercase tracking-tight">DDoS Attack Started!</h2>
+                  <p className="text-sm opacity-70 leading-relaxed">
+                    The system has detected a massive surge in incoming traffic. High-frequency requests are targeting your server resources.
+                  </p>
+                </div>
+
+                {!isPreventionEnabled && (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg w-full">
+                    <p className="text-xs font-mono font-bold text-red-700 uppercase flex items-center justify-center gap-2">
+                      <AlertTriangle size={14} /> Shield is currently OFF
+                    </p>
+                    <button 
+                      onClick={() => {
+                        setIsPreventionEnabled(true);
+                        setShowAttackAlert(false);
+                      }}
+                      className="mt-3 w-full bg-red-600 text-white py-2 rounded font-mono text-xs uppercase tracking-widest hover:bg-red-700 transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"
+                    >
+                      Turn On Shield Now
+                    </button>
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => setShowAttackAlert(false)}
+                  className="text-[10px] font-mono uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
+                >
+                  Dismiss Warning
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Notifications */}
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+          {notifications.map(n => (
+            <motion.div
+              key={n.id}
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              className="bg-[#141414] text-[#E4E3E0] border border-red-500/50 p-4 rounded-lg shadow-2xl flex items-center gap-3 pointer-events-auto"
+            >
+              <div className="bg-red-500/20 p-2 rounded-full">
+                <ShieldAlert size={18} className="text-red-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-mono uppercase opacity-50">Prevention Active</p>
+                <p className="text-xs font-mono font-bold">Blocked IP: {n.ip}</p>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
