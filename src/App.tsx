@@ -69,6 +69,9 @@ const ATTACK_IPS = [
   '45.12.89.1', '103.4.22.11', '198.51.100.24', '203.0.113.5'
 ];
 
+const ATTACK_TYPES = ['SYN Flood', 'UDP Flood', 'ICMP Flood', 'HTTP GET Flood', 'DNS Amplification'];
+const TARGET_IPS = ['10.0.0.1', '10.0.0.5', '172.16.0.10', '192.168.1.100'];
+
 export default function App() {
   // --- State ---
   const [packets, setPackets] = useState<Packet[]>([]);
@@ -94,6 +97,7 @@ export default function App() {
   });
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analysis' | 'about'>('dashboard');
   const [showAttackAlert, setShowAttackAlert] = useState(false);
+  const [currentAttack, setCurrentAttack] = useState<{ type: string; target: string } | null>(null);
 
   // --- Refs for Simulation ---
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -216,7 +220,12 @@ export default function App() {
               const nextState = !isAttackActive;
               setIsAttackActive(nextState);
               if (nextState) {
+                const randomType = ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)];
+                const randomTarget = TARGET_IPS[Math.floor(Math.random() * TARGET_IPS.length)];
+                setCurrentAttack({ type: randomType, target: randomTarget });
                 setShowAttackAlert(true);
+              } else {
+                setCurrentAttack(null);
               }
             }}
             className={cn(
@@ -720,7 +729,15 @@ export default function App() {
                 
                 <div className="space-y-2">
                   <h2 className="font-serif italic text-3xl font-bold text-red-600 uppercase tracking-tight">DDoS Attack Started!</h2>
-                  <p className="text-sm opacity-70 leading-relaxed">
+                  <div className="bg-red-50 p-3 border border-red-100 rounded-lg text-left space-y-1">
+                    <p className="text-[10px] font-mono uppercase text-red-600 opacity-70">Attack Signature Detected</p>
+                    <p className="text-sm font-mono font-bold text-red-800">{currentAttack?.type || 'Unknown Vector'}</p>
+                    <div className="pt-2 border-t border-red-100 mt-2">
+                      <p className="text-[10px] font-mono uppercase text-red-600 opacity-70">Target Resource</p>
+                      <p className="text-sm font-mono font-bold text-red-800">{currentAttack?.target || 'Internal Gateway'}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs opacity-70 leading-relaxed pt-2">
                     The system has detected a massive surge in incoming traffic. High-frequency requests are targeting your server resources.
                   </p>
                 </div>
