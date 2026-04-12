@@ -99,6 +99,10 @@ export default function App() {
   const [showAttackAlert, setShowAttackAlert] = useState(false);
   const [currentAttack, setCurrentAttack] = useState<{ type: string; target: string } | null>(null);
 
+  useEffect(() => {
+    document.title = "DDOS Attack";
+  }, []);
+
   // --- Refs for Simulation ---
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const counterRef = useRef(0);
@@ -210,7 +214,7 @@ export default function App() {
       {/* --- Header --- */}
       <header className="border-b border-[#141414] p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-serif italic font-bold tracking-tight">DDoS Shield ML</h1>
+          <h1 className="text-3xl font-serif italic font-bold tracking-tight">DDOS Attack</h1>
           <p className="text-xs font-mono opacity-60 uppercase tracking-widest mt-1">Real-time Detection & Prevention System</p>
         </div>
         

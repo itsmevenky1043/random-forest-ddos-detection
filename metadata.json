@@ -1,5 +1,5 @@
 {
-  "name": "DDoS Shield ML",
+  "name": "DDOS Attack",
   "description": "Real-time DDoS detection and prevention system using Random Forest machine learning simulation.",
   "requestFramePermissions": []
 }
